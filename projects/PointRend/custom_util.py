@@ -3,7 +3,7 @@ import sys
 import time
 import random
 import logging
-import datetime
+from datetime import datetime
 import argparse
 import numpy as np
 from contextlib import ExitStack

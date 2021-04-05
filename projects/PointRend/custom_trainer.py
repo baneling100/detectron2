@@ -3,6 +3,7 @@ import time
 import torch
 import logging
 import numpy as np
+from typing import Dict
 from collections import OrderedDict
 
 import torch_xla.core.xla_model as xm

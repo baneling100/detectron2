@@ -65,7 +65,7 @@ class CustomCOCOEvaluator(COCOEvaluator):
         # Copy so the caller can do whatever with results
         return copy.deepcopy(self._results)
 
-class CustomCityscapesInstanceEvaluator(CityscapesEvaluator):
+class CustomCityscapesInstanceEvaluator(CityscapesInstanceEvaluator):
     def reset(self):
         self._working_dir = tempfile.TemporaryDirectory(prefix="cityscapes_eval_")
         self._temp_dir = self._working_dir.name

@@ -57,7 +57,7 @@ def setup(args):
     return cfg
 
 
-def main(args):
+def main(index, args):
     cfg = setup(args)
 
     if args.eval_only:
