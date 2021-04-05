@@ -152,3 +152,25 @@ If you use PointRend, please use the following BibTeX entry.
   year={2019}
 }
 ```
+
+## Installation Commands
+```
+sudo docker run -v /mnt/disks/sdb/detectron2:/root/detectron2 -it --shm-size 120G --name detectron2 gcr.io/tpu-pytorch/xla:r1.8
+python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
+pip install opencv-python
+apt install libgl1-mesa-glx
+export XRT_TPU_CONFIG="tpu_worker;0;10.114.129.34:8470"
+export DETECTRON2_DATASETS="/root/detectron2/datasets"
+export XLA_USE_BF16=1
+```
+These 3 environment variables are added to `root/.bashrc`.
+
+## Experiment Commands
+```
+sudo docker start -ai detectron2
+cd /root/detectron2/projects/PointRend
+python3 train_net.py --config-file configs/InstanceSegmentation/pointrend_rcnn_R_50_FPN_1x_coco.yaml --num-tpus 8
+```
+
+## Infos
+`/mnt/disks/sdb/detectron2` is mounted as `/root/detectron2` inside container.
