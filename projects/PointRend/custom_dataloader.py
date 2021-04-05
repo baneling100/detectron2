@@ -5,12 +5,11 @@ import torch
 import torch_xla.core.xla_model as xm
 
 from detectron2.config import configurable
-from detectron2.utils.logger import _log_api_usage
 from detectron2.data.common import AspectRatioGroupedDataset
 from detectron2.data import DatasetFromList, MapDataset, DatasetMapper
 from detectron2.data.build import trivial_batch_collator, get_detection_dataset_dicts
 
-from custom_util import custom_seed_all_rng, custom_shared_random_seed
+from custom_util import custom_seed_all_rng, custom_shared_random_seed, custom_log_api_usage
 
 __all__ = [
     "custom_build_detection_train_loader",
@@ -26,23 +25,21 @@ def custom_train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=N
             else 0,
             proposal_files=cfg.DATASETS.PROPOSAL_FILES_TRAIN if cfg.MODEL.LOAD_PROPOSALS else None,
         )
-        _log_api_usage("dataset." + cfg.DATASETS.TRAIN[0])
+        custom_log_api_usage("dataset." + cfg.DATASETS.TRAIN[0])
 
     if mapper is None:
         mapper = DatasetMapper(cfg, True)
 
     if sampler is None:
-        #sampler_name = cfg.DATALOADER.SAMPLER_TRAIN
-        sampler_name = "DistributedSampler"
+        sampler_name = "DistributedSampler"#cfg.DATALOADER.SAMPLER_TRAIN
         logger = logging.getLogger(__name__)
         logger.info("Using training sampler {}".format(sampler_name))
-        if xm.xrt_world_size() > 1:
-            sampler = torch.utils.data.distributed.DistributedSampler(
-                dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=True,
-                seed=int(custom_shared_random_seed()))
+        sampler = torch.utils.data.distributed.DistributedSampler(
+            dataset,
+            num_replicas=xm.xrt_world_size(),
+            rank=xm.get_ordinal(),
+            shuffle=True,
+            seed=int(custom_shared_random_seed()))
         """
         if sampler_name == "TrainingSampler":
             sampler = TrainingSampler(len(dataset))
@@ -99,10 +96,8 @@ def custom_build_detection_train_loader(
         dataset = DatasetFromList(dataset, copy=False)
     if mapper is not None:
         dataset = MapDataset(dataset, mapper)
-    #if sampler is None:
-    #    sampler = TrainingSampler(len(dataset))
-    sampler = None
-    if xm.xrt_world_size() > 1:
+    if sampler is None:
+        #sampler = TrainingSampler(len(dataset))
         sampler = torch.utils.data.distributed.DistributedSampler(
             dataset,
             num_replicas=xm.xrt_world_size(),
