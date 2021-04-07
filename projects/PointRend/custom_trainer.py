@@ -29,7 +29,7 @@ from custom_evaluator import (
     CustomCityscapesSemSegEvaluator,
     CustomCityscapesInstanceEvaluator,
 )
-from custom_gather import custom_gather, custom_all_gather
+from custom_gather import custom_gather
 from custom_checkpointer import CustomDetectionCheckpointer
 from custom_dataloader import custom_build_detection_train_loader
 from custom_util import custom_build_sem_seg_train_aug, custom_inference_on_dataset
@@ -146,9 +146,9 @@ class CustomTrainer(TrainerBase):
         #if isinstance(self.model, DistributedDataParallel):
             # broadcast loaded data/model from the first rank, because other
             # machines may not have access to the checkpoint file
-        #    if TORCH_VERSION >= (1, 7):
-        #        self.model._sync_params_and_buffers()
-        self.start_iter = custom_all_gather(self.start_iter)[0]
+            #if TORCH_VERSION >= (1, 7):
+                #self.model._sync_params_and_buffers()
+            #self.start_iter = custom_all_gather(self.start_iter)[0]
 
     def build_hooks(self):
         """
