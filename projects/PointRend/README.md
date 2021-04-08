@@ -153,24 +153,20 @@ If you use PointRend, please use the following BibTeX entry.
 }
 ```
 
-## Installation Commands
-```
-sudo docker run -v /mnt/disks/sdb/detectron2:/root/detectron2 -it --shm-size 120G --name detectron2 gcr.io/tpu-pytorch/xla:r1.8
-python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
-pip install opencv-python
-apt install libgl1-mesa-glx
-export XRT_TPU_CONFIG="tpu_worker;0;10.114.129.34:8470"
-export DETECTRON2_DATASETS="/root/detectron2/datasets"
-export XLA_USE_BF16=1
-```
-These 3 environment variables are added to `root/.bashrc`.
-
 ## Experiment Commands
 ```
-sudo docker start -ai detectron2
-cd /root/detectron2/projects/PointRend
-python3 train_net.py --config-file configs/InstanceSegmentation/pointrend_rcnn_R_50_FPN_1x_coco.yaml --num-tpus 8
+conda activate torch-xla-1.8
+cd ~/detectron2/projects/PointRend
+python train_net.py --config-file configs/SemanticSegmentation/pointrend_semantic_R_101_FPN_1x_cityscapes.yaml --num-tpus 8
 ```
+* `--config-file <path>`
+* `--resume`
+* `--eval-only`
+* `--num-tpus <num_of_TPUs>`
 
-## Infos
-`/mnt/disks/sdb/detectron2` is mounted as `/root/detectron2` inside container.
+## Profiling Commands
+```
+conda activate tensorboard
+tensorboard --logdir logs --port 9001
+```
+If you forward 9001 port to local machine, you can access profiler on `http://localhost:9001/#profile`. Click `CAPTURE PROFILE`, fill out `10.114.129.34:8466`, and click `CAPTURE` button as training is going on.
