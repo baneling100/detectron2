@@ -486,7 +486,7 @@ class CustomSimpleTrainer(SimpleTrainer):
         If you want to do something with the losses, you can wrap the model.
         """
         loss_dict = self.model(data)
-        losses = loss_dict.sum()
+        losses = sum(loss_dict.values())
 
         """
         If you need to accumulate gradients or do something similar, you can
@@ -510,6 +510,7 @@ class CustomSimpleTrainer(SimpleTrainer):
         data_time: float,
         prefix: str = "",
     ):
+        print("_write_metrics called")
         """
         Args:
             loss_dict (dict): dict of scalar losses

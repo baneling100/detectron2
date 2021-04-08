@@ -7,9 +7,9 @@ import torch_xla.core.xla_model as xm
 from detectron2.config import configurable
 from detectron2.data.common import AspectRatioGroupedDataset
 from detectron2.data import DatasetFromList, MapDataset, DatasetMapper
-from detectron2.data.build import trivial_batch_collator, get_detection_dataset_dicts
+from detectron2.data.build import trivial_batch_collator, get_detection_dataset_dicts, worker_init_reset_seed
 
-from custom_util import custom_seed_all_rng, custom_shared_random_seed, custom_log_api_usage
+from custom_util import custom_shared_random_seed
 
 __all__ = [
     "custom_build_detection_train_loader",
@@ -144,7 +144,7 @@ def custom_build_batch_data_loader(
             num_workers=num_workers,
             batch_sampler=None,
             collate_fn=operator.itemgetter(0),  # don't batch, but yield individual elements
-            worker_init_fn=custom_worker_init_reset_seed,
+            worker_init_fn=worker_init_reset_seed,
         )  # yield individual mapped dict
         return CustomAspectRatioGroupedDataset(data_loader, batch_size)
     else:
@@ -156,12 +156,8 @@ def custom_build_batch_data_loader(
             num_workers=num_workers,
             batch_sampler=batch_sampler,
             collate_fn=trivial_batch_collator,
-            worker_init_fn=custom_worker_init_reset_seed,
+            worker_init_fn=worker_init_reset_seed,
         )
-
-def custom_worker_init_reset_seed(worker_id):
-    initial_seed = torch.initial_seed() % 2 ** 31
-    custom_seed_all_rng(initial_seed + worker_id)
 
 class CustomAspectRatioGroupedDataset(AspectRatioGroupedDataset):
     def __len__(self):

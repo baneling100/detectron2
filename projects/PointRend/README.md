@@ -164,6 +164,8 @@ python train_net.py --config-file configs/SemanticSegmentation/pointrend_semanti
 * `--eval-only`
 * `--num-tpus <num_of_TPUs>`
 
+You cannot use AMPTrainer. Instead, you can run the model on half-precision by setting `XLA_USE_BF16=1` in `~/.bashrc`.
+
 ## Profiling Commands
 ```
 conda activate tensorboard
