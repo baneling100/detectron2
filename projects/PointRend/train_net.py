@@ -49,9 +49,12 @@ def setup(args):
     add_pointrend_config(cfg)
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+
+    # to send model to TPUs
     devices = xm.get_xla_supported_devices()
-    assert devices, 'No devices of {} kind'.format('ANY')
+    assert devices, 'No devices of ANY kind'
     cfg.MODEL.DEVICE = devices[0]
+    
     cfg.freeze()
     custom_setup(cfg, args)
     return cfg

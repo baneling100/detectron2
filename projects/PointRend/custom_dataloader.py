@@ -25,7 +25,7 @@ def custom_train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=N
             else 0,
             proposal_files=cfg.DATASETS.PROPOSAL_FILES_TRAIN if cfg.MODEL.LOAD_PROPOSALS else None,
         )
-        custom_log_api_usage("dataset." + cfg.DATASETS.TRAIN[0])
+        torch._C._log_api_usage_once("detectron2.dataset." + cfg.DATASETS.TRAIN[0])
 
     if mapper is None:
         mapper = DatasetMapper(cfg, True)

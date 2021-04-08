@@ -13,6 +13,7 @@ from torch import nn
 import torch_xla.core.xla_model as xm
 
 import detectron2.data.transforms as T
+from detectron2.utils.env import seed_all_rng
 from detectron2.utils.logger import setup_logger
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import log_every_n_seconds
@@ -25,8 +26,6 @@ from custom_evaluator import CustomDatasetEvaluators
 
 __all__ = [
     "custom_setup",
-    "custom_seed_all_rng",
-    "custom_log_api_usage",
     "custom_argument_parser",
     "custom_shared_random_seed",
     "custom_inference_on_dataset",
@@ -74,33 +73,12 @@ def custom_setup(cfg, args):
         logger.info("Full config saved to {}".format(path))
 
     # make sure each worker has a different, yet deterministic seed if specified
-    custom_seed_all_rng(None if cfg.SEED < 0 else cfg.SEED + rank)
+    seed_all_rng(None if cfg.SEED < 0 else cfg.SEED + rank)
 
     # cudnn benchmark has large overhead. It shouldn't be used considering the small size of
     # typical validation set.
     #if not (hasattr(args, "eval_only") and args.eval_only):
     #    torch.backends.cudnn.benchmark = cfg.CUDNN_BENCHMARK
-
-def custom_seed_all_rng(seed=None):
-    """
-    Set the random seed for the RNG in torch, numpy and python.
-
-    Args:
-        seed (int): if None, will use a strong random seed.
-    """
-    if seed is None:
-        seed = (
-            os.getpid()
-            + int(datetime.now().strftime("%S%f"))
-            + int.from_bytes(os.urandom(2), "big")
-        )
-        logger = logging.getLogger(__name__)
-        logger.info("Using a generated random seed {}".format(seed))
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    random.seed(seed)
-    xm.set_rng_state(seed, device=xm.xla_device())
-    os.environ["PYTHONHASHSEED"] = str(seed)
 
 def custom_argument_parser(epilog=None):
     """
@@ -161,25 +139,18 @@ Change some config options:
     )
     return parser
 
-def custom_build_sem_seg_train_aug(cfg):
-    augs = [
-        T.ResizeShortestEdge(
-            cfg.INPUT.MIN_SIZE_TRAIN, cfg.INPUT.MAX_SIZE_TRAIN, cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING
-        )
-    ]
-    if cfg.INPUT.CROP.ENABLED:
-        augs.append(
-            T.RandomCrop_CategoryAreaConstraint(
-                cfg.INPUT.CROP.TYPE,
-                cfg.INPUT.CROP.SIZE,
-                cfg.INPUT.CROP.SINGLE_CATEGORY_MAX_AREA,
-                cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE,
-            )
-        )
-    if cfg.INPUT.COLOR_AUG_SSD:
-        augs.append(ColorAugSSDTransform(img_format=cfg.INPUT.FORMAT))
-    augs.append(T.RandomFlip())
-    return augs
+def custom_shared_random_seed():
+    """
+    Returns:
+        int: a random number that is the same across all workers.
+            If workers need a shared RNG, they can use this shared seed to
+            create one.
+
+    All workers must call this function, otherwise it will deadlock.
+    """
+    ints = np.random.randint(2 ** 31)
+    all_ints = custom_all_gather(ints)
+    return all_ints[0]
 
 def custom_inference_on_dataset(model, data_loader, evaluator):
     """
@@ -269,22 +240,22 @@ def custom_inference_on_dataset(model, data_loader, evaluator):
         results = {}
     return results
 
-def custom_shared_random_seed():
-    """
-    Returns:
-        int: a random number that is the same across all workers.
-            If workers need a shared RNG, they can use this shared seed to
-            create one.
-
-    All workers must call this function, otherwise it will deadlock.
-    """
-    ints = np.random.randint(2 ** 31)
-    all_ints = custom_all_gather(ints)
-    return all_ints[0]
-
-def custom_log_api_usage(identifier: str):
-    """
-    Internal function used to log the usage of different detectron2 components
-    inside facebook's infra.
-    """
-    torch._C._log_api_usage_once("detectron2." + identifier)
+def custom_build_sem_seg_train_aug(cfg):
+    augs = [
+        T.ResizeShortestEdge(
+            cfg.INPUT.MIN_SIZE_TRAIN, cfg.INPUT.MAX_SIZE_TRAIN, cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING
+        )
+    ]
+    if cfg.INPUT.CROP.ENABLED:
+        augs.append(
+            T.RandomCrop_CategoryAreaConstraint(
+                cfg.INPUT.CROP.TYPE,
+                cfg.INPUT.CROP.SIZE,
+                cfg.INPUT.CROP.SINGLE_CATEGORY_MAX_AREA,
+                cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE,
+            )
+        )
+    if cfg.INPUT.COLOR_AUG_SSD:
+        augs.append(ColorAugSSDTransform(img_format=cfg.INPUT.FORMAT))
+    augs.append(T.RandomFlip())
+    return augs
